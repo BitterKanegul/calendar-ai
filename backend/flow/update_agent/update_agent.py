@@ -7,15 +7,30 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_i
 from openai import OpenAIError, RateLimitError
 import json
 from typing import List
-from adapter.event_adapter import EventAdapter
-from database import get_async_db_context_manager
 from models import Event
 from .update_filter_event_agent_prompt import UPDATE_FILTER_EVENT_AGENT_PROMPT
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from langchain_core.messages import HumanMessage
+from ..mcp_client import call_calendar_tool
 
 retryable_exceptions = (OpenAIError, RateLimitError)
+
+
+def _dict_to_event(d: dict, fallback_user_id: int) -> Event:
+    """Reconstruct a Pydantic Event from an MCP tool result dict."""
+    return Event(
+        id=d['id'],
+        title=d['title'],
+        startDate=d['startDate'],
+        endDate=d['endDate'],
+        duration=d.get('duration'),
+        location=d.get('location'),
+        user_id=d.get('user_id', fallback_user_id),
+        priority=d.get('priority', 'optional'),
+        flexibility=d.get('flexibility', 'movable'),
+        category=d.get('category', 'personal'),
+    )
 
 
 @retry(
@@ -59,18 +74,19 @@ def update_message_handler(_: FlowState):
 
 async def get_events_for_update(state: FlowState) -> List[Event]:
     """
-    Get events by date range for updating.
+    Get events by date range for updating via the Calendar MCP Server.
     """
     try:
-        async with get_async_db_context_manager() as db:
-            adapter = EventAdapter(db)
-            event_args = state['update_date_range_data']['arguments'].get('event_arguments', {})
-
-            start_date = event_args.get('startDate')
-            end_date = event_args.get('endDate')
-            
-            state['update_date_range_filtered_events'] = await adapter.get_events_by_date_range(state['user_id'], start_date, end_date)
-            return state
+        event_args = state['update_date_range_data']['arguments'].get('event_arguments', {})
+        start_date = event_args.get('startDate')
+        end_date = event_args.get('endDate')
+        result = await call_calendar_tool("list_events", {
+            "user_id": state['user_id'],
+            "start_date": start_date,
+            "end_date": end_date,
+        })
+        state['update_date_range_filtered_events'] = [_dict_to_event(d, state['user_id']) for d in (result or [])]
+        return state
     except Exception as e:
         state['update_date_range_filtered_events'] = []
         return state
@@ -109,7 +125,10 @@ async def update_filter_event_agent(state: FlowState):
                             endDate=end_date,
                             duration=event_dict.get('duration'),
                             location=event_dict.get('location'),
-                            user_id=state['user_id']
+                            user_id=state['user_id'],
+                            priority=event_dict.get('priority', 'optional'),
+                            flexibility=event_dict.get('flexibility', 'movable'),
+                            category=event_dict.get('category', 'personal'),
                         )
                         events.append(event)
                     except Exception as e:
@@ -124,22 +143,20 @@ async def update_filter_event_agent(state: FlowState):
                     update_args = state['update_arguments']
                     if 'startDate' in update_args: # important: no need to add duration
                         try:
-                            async with get_async_db_context_manager() as db:
-                                adapter = EventAdapter(db)
-                                start_date = datetime.fromisoformat(update_args['startDate'])
-                                duration = update_args.get('duration', 0)
-                                end_date = start_date + timedelta(minutes=duration)
-                                
-                                # Get event IDs to exclude from conflict check
-                                event_ids_to_exclude = [event.id for event in events]
-                                
-                                conflict_event = await adapter.check_event_conflict(
-                                    state['user_id'], 
-                                    start_date, 
-                                    end_date,
-                                    exclude_event_id=event_ids_to_exclude[0] if len(event_ids_to_exclude) == 1 else None
-                                )
-                                state['update_conflict_event'] = conflict_event
+                            start_date = datetime.fromisoformat(update_args['startDate'])
+                            duration = update_args.get('duration', 0)
+                            end_date = start_date + timedelta(minutes=duration)
+                            event_ids_to_exclude = [event.id for event in events]
+
+                            conflict_dict = await call_calendar_tool("check_conflicts", {
+                                "user_id": state['user_id'],
+                                "start_date": start_date.isoformat(),
+                                "end_date": end_date.isoformat(),
+                                "exclude_event_id": event_ids_to_exclude[0] if len(event_ids_to_exclude) == 1 else None,
+                            })
+                            state['update_conflict_event'] = (
+                                _dict_to_event(conflict_dict, state['user_id']) if conflict_dict else None
+                            )
                         except Exception as e:
                             state['update_messages'].append(AIMessage(content="An error occurred. Please try again later."))
                             return state

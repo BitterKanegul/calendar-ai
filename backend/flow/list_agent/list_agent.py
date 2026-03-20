@@ -6,15 +6,30 @@ from ..llm import model
 from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_if_exception_type
 from openai import OpenAIError, RateLimitError
 import json
-from database import get_async_db_context_manager
-from adapter.event_adapter import EventAdapter
 from models import Event
 from typing import List
 from .list_filter_event_agent_prompt import LIST_FILTER_EVENT_AGENT_PROMPT
 from datetime import datetime
 from langchain_core.messages import HumanMessage
+from ..mcp_client import call_calendar_tool
 
 retryable_exceptions = (OpenAIError, RateLimitError)
+
+
+def _dict_to_event(d: dict, fallback_user_id: int) -> Event:
+    """Reconstruct a Pydantic Event from an MCP tool result dict."""
+    return Event(
+        id=d['id'],
+        title=d['title'],
+        startDate=d['startDate'],
+        endDate=d['endDate'],
+        duration=d.get('duration'),
+        location=d.get('location'),
+        user_id=d.get('user_id', fallback_user_id),
+        priority=d.get('priority', 'optional'),
+        flexibility=d.get('flexibility', 'movable'),
+        category=d.get('category', 'personal'),
+    )
 
 
 @retry(
@@ -60,15 +75,18 @@ def list_message_handler(_: FlowState):
 
 async def list_event_by_date_range(state: FlowState) -> List[Event]:
     """
-    Get events by date range.
+    Get events by date range via the Calendar MCP Server.
     """
     try:
-        async with get_async_db_context_manager() as db:
-            adapter = EventAdapter(db)
-            start_date = state['list_date_range_data']['arguments'].get('startDate')
-            end_date = state['list_date_range_data']['arguments'].get('endDate')
-            state['list_date_range_filtered_events'] = await adapter.get_events_by_date_range(state['user_id'], start_date, end_date)
-            return state
+        start_date = state['list_date_range_data']['arguments'].get('startDate')
+        end_date = state['list_date_range_data']['arguments'].get('endDate')
+        result = await call_calendar_tool("list_events", {
+            "user_id": state['user_id'],
+            "start_date": start_date,
+            "end_date": end_date,
+        })
+        state['list_date_range_filtered_events'] = [_dict_to_event(d, state['user_id']) for d in (result or [])]
+        return state
     except Exception as e:
         state['list_date_range_filtered_events'] = []
         return state
@@ -104,9 +122,12 @@ async def list_filter_event_agent(state: FlowState):
                             title=event_dict.get('title'),
                             startDate=start_date,
                             endDate=end_date,
-                            duration=event_dict.get('duration', None),
-                            location=event_dict.get('location', None),
-                            user_id=state['user_id']
+                            duration=event_dict.get('duration'),
+                            location=event_dict.get('location'),
+                            user_id=state['user_id'],
+                            priority=event_dict.get('priority', 'optional'),
+                            flexibility=event_dict.get('flexibility', 'movable'),
+                            category=event_dict.get('category', 'personal'),
                         )
                         events.append(event)
                     except Exception as e:

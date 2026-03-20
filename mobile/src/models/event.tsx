@@ -1,3 +1,7 @@
+export type EventPriority = 'mandatory' | 'optional';
+export type EventFlexibility = 'fixed' | 'movable';
+export type EventCategory = 'work' | 'study' | 'personal' | 'leisure';
+
 export interface Event {
   id: string;
   title: string;
@@ -6,6 +10,9 @@ export interface Event {
   duration?: number;
   location?: string;
   user_id?: number;
+  priority?: EventPriority;
+  flexibility?: EventFlexibility;
+  category?: EventCategory;
 }
 
 export interface EventCreate {
@@ -13,4 +20,7 @@ export interface EventCreate {
   startDate: string;
   duration?: number;
   location?: string;
+  priority?: EventPriority;
+  flexibility?: EventFlexibility;
+  category?: EventCategory;
 }

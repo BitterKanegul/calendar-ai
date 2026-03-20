@@ -25,6 +25,9 @@ You need to perform two tasks:
   - `duration`: New duration in minutes
   - `startDate`: New start date and time. Format: `YYYY-MM-DDTHH:MM:SS±HH:MM`
   - `location`: New location for the event
+  - `priority`: New priority — `"mandatory"` or `"optional"`
+  - `flexibility`: New flexibility — `"fixed"` or `"movable"`
+  - `category`: New category — `"work"`, `"study"`, `"personal"`, or `"leisure"`
 </arguments>
 
 <rules>:
@@ -72,7 +75,10 @@ You need to perform two tasks:
       "title": "...",
       "duration": ...,
       "startDate": "...",
-      "location": "..."
+      "location": "...",
+      "priority": "...",
+      "flexibility": "...",
+      "category": "..."
     }}
   }}
 }}

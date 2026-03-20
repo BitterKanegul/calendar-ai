@@ -33,4 +33,20 @@ class FlowState(TypedDict):
     update_final_filtered_events: List[Event]
     update_arguments: dict
     update_conflict_event: Optional[Event]
+    resolution_plan: Optional[dict]
+    resolution_type: Optional[str]
+    awaiting_confirmation: bool
+    confirmation_type: Optional[str]
+    confirmation_data: Optional[dict]
+    plan_tasks: Optional[list]
+    plan_results: Optional[list]
+    plan_summary: Optional[str]
+    is_planning_mode: bool
+    email_messages: Annotated[list[BaseMessage], add_messages]
+    email_extracted_events: Optional[dict]
+    email_search_results: Optional[list]
+    leisure_messages: Annotated[list[BaseMessage], add_messages]
+    leisure_search_params: Optional[dict]
+    leisure_search_results: Optional[list]
+    leisure_recommended_events: Optional[list]
     is_success: Annotated[bool, merge_is_success]

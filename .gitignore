@@ -329,6 +329,10 @@ config.json
 credentials.json
 service-account-key.json
 
+# Email RAG Pipeline — per-user data (never commit)
+backend/data/chroma/
+backend/data/gmail_credentials/
+
 # Audio files (if you want to ignore them)
 *.mp3
 *.wav

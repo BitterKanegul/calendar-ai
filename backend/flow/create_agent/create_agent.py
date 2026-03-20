@@ -7,10 +7,9 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_i
 from openai import OpenAIError, RateLimitError
 import json
 from typing import Optional
-from adapter.event_adapter import EventAdapter
-from database import get_async_db_context_manager
 from models import Event
 from datetime import timedelta, datetime
+from ..mcp_client import call_calendar_tool
 
 retryable_exceptions = (OpenAIError, RateLimitError)
 
@@ -59,24 +58,36 @@ def create_message_handler(state: FlowState):
 
 async def check_event_conflict(state: FlowState) -> Optional[Event]:
     """
-    Check for event conflicts before creating the event.
+    Check for event conflicts before creating the event via the Calendar MCP Server.
     """
     try:
-        async with get_async_db_context_manager() as db:
-            adapter = EventAdapter(db)
-            conflict_events = []
-            for event_data in state['create_event_data']:
-                start_date = datetime.fromisoformat(event_data.get('arguments', {}).get('startDate'))
-                duration = event_data.get('arguments', {}).get('duration', 0)
-                end_date = start_date + timedelta(minutes=duration)
-                if start_date:
-                    conflict_event = await adapter.check_event_conflict(state['user_id'], start_date, end_date)
-                    if conflict_event:
-                        conflict_events.append(conflict_event)
-            state['create_conflict_events'] = conflict_events
-            state['is_success'] = True    
-            state['create_messages'].append(AIMessage(content=f"Do you want to create the following events?"))
-            return state
+        conflict_events = []
+        for event_data in state['create_event_data']:
+            start_date = datetime.fromisoformat(event_data.get('arguments', {}).get('startDate'))
+            duration = event_data.get('arguments', {}).get('duration', 0) or 0
+            end_date = start_date + timedelta(minutes=duration)
+            conflict_dict = await call_calendar_tool("check_conflicts", {
+                "user_id": state['user_id'],
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+            })
+            if conflict_dict:
+                conflict_events.append(Event(
+                    id=conflict_dict['id'],
+                    title=conflict_dict['title'],
+                    startDate=conflict_dict['startDate'],
+                    endDate=conflict_dict['endDate'],
+                    duration=conflict_dict.get('duration'),
+                    location=conflict_dict.get('location'),
+                    user_id=conflict_dict.get('user_id', state['user_id']),
+                    priority=conflict_dict.get('priority', 'optional'),
+                    flexibility=conflict_dict.get('flexibility', 'movable'),
+                    category=conflict_dict.get('category', 'personal'),
+                ))
+        state['create_conflict_events'] = conflict_events
+        state['is_success'] = True
+        state['create_messages'].append(AIMessage(content="Do you want to create the following events?"))
+        return state
     except Exception as e:
         state['create_messages'].append(AIMessage(content="An error occurred. Please try again later."))
         return state

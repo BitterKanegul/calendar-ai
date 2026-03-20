@@ -1,0 +1,466 @@
+[
+  {
+    "id": "tc_create_001",
+    "category": "create",
+    "description": "Simple event with specific time",
+    "input": "Schedule a dentist appointment tomorrow at 10am for 1 hour",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "create",
+      "slots": { "title": "dentist", "duration": 60 },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_create_002",
+    "category": "create",
+    "description": "Recurring-sounding event creation",
+    "input": "Add team standup every Monday at 9am for 30 minutes",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "create",
+      "slots": { "title": "standup", "duration": 30 },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_create_003",
+    "category": "create",
+    "description": "Event with location",
+    "input": "Book a dinner reservation at Nobu on Saturday at 7pm for 2 hours",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "create",
+      "slots": { "title": "dinner", "duration": 120, "location": "Nobu" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_create_004",
+    "category": "create",
+    "description": "Mandatory priority event",
+    "input": "Create a mandatory board meeting next Friday at 2pm for 2 hours",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "create",
+      "slots": { "title": "board meeting", "duration": 120, "priority": "mandatory" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_create_005",
+    "category": "create",
+    "description": "Casual phrasing for event creation",
+    "input": "Remind me to call mom this Sunday at noon",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "create",
+      "slots": { "title": "call mom" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_create_006",
+    "category": "create",
+    "description": "Workout event",
+    "input": "Set up a gym session tomorrow morning at 7am for 45 minutes",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "create",
+      "slots": { "title": "gym", "duration": 45, "category": "health" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_create_007",
+    "category": "create",
+    "description": "Multi-word event without explicit duration",
+    "input": "Add a product review meeting on April 1st at 3pm",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "create",
+      "slots": { "title": "product review" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_update_001",
+    "category": "update",
+    "description": "Reschedule by time",
+    "input": "Move my dentist appointment to 3pm",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "update",
+      "slots": { "title_filter": "dentist" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_update_002",
+    "category": "update",
+    "description": "Reschedule to different day",
+    "input": "Move tomorrow's standup to Tuesday at the same time",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "update",
+      "slots": { "title_filter": "standup" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_update_003",
+    "category": "update",
+    "description": "Update location",
+    "input": "Change the board meeting location to Conference Room B",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "update",
+      "slots": { "title_filter": "board meeting", "location": "Conference Room B" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_update_004",
+    "category": "update",
+    "description": "Update duration",
+    "input": "Extend the product review meeting to 2 hours",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "update",
+      "slots": { "title_filter": "product review", "duration": 120 },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_delete_001",
+    "category": "delete",
+    "description": "Cancel specific event",
+    "input": "Cancel my dentist appointment tomorrow",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "delete",
+      "slots": { "title_filter": "dentist" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_delete_002",
+    "category": "delete",
+    "description": "Delete by day",
+    "input": "Delete all my events next Monday",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "delete",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_delete_003",
+    "category": "delete",
+    "description": "Remove specific named event",
+    "input": "Remove the board meeting on Friday",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "delete",
+      "slots": { "title_filter": "board meeting" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_delete_004",
+    "category": "delete",
+    "description": "Cancel gym session",
+    "input": "Cancel my gym session this week",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "delete",
+      "slots": { "title_filter": "gym" },
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_list_001",
+    "category": "list",
+    "description": "List events for tomorrow",
+    "input": "What's on my calendar tomorrow?",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "list",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_list_002",
+    "category": "list",
+    "description": "List events for next week",
+    "input": "Show me my schedule for next week",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "list",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_list_003",
+    "category": "list",
+    "description": "List specific day",
+    "input": "What meetings do I have on Friday?",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "list",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_list_004",
+    "category": "list",
+    "description": "List weekend events",
+    "input": "What do I have scheduled this weekend?",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "list",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_list_005",
+    "category": "list",
+    "description": "List today",
+    "input": "Show me today's events",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "list",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_plan_001",
+    "category": "plan",
+    "description": "Schedule multiple focus blocks",
+    "input": "Schedule 3 focus blocks next week, 2 hours each in the morning",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "plan",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_plan_002",
+    "category": "plan",
+    "description": "Complex multi-event plan",
+    "input": "Add daily standups at 9am and lunch breaks at noon for the next 5 weekdays",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "plan",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_plan_003",
+    "category": "plan",
+    "description": "Optimize deep work schedule",
+    "input": "Block out deep work sessions every afternoon this week for 3 hours each",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "plan",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_email_001",
+    "category": "email",
+    "description": "Extract events from emails",
+    "input": "Check my emails for any meeting invites this week",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "email",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_email_002",
+    "category": "email",
+    "description": "Find event details from email",
+    "input": "Look in my emails for the conference schedule",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "email",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_message_001",
+    "category": "message",
+    "description": "Off-topic question",
+    "input": "What time is it in Tokyo right now?",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "message",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_message_002",
+    "category": "message",
+    "description": "Greeting",
+    "input": "Hey, how are you doing today?",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "message",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_message_003",
+    "category": "message",
+    "description": "General productivity question",
+    "input": "What are good time management strategies?",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "message",
+      "slots": {},
+      "completion": true
+    }
+  },
+  {
+    "id": "tc_message_004",
+    "category": "message",
+    "description": "Thanks / social",
+    "input": "Thanks, that's exactly what I needed!",
+    "context": {
+      "current_datetime": "2026-03-19T09:00:00",
+      "weekday": "Thursday",
+      "days_in_month": 31
+    },
+    "expected": {
+      "route": "message",
+      "slots": {},
+      "completion": true
+    }
+  }
+]

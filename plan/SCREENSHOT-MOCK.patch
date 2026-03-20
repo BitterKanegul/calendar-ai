@@ -1,0 +1,339 @@
+Patch for design screenshots — apply to run the mobile app without a backend.
+
+To apply:
+  cd calendar-ai
+  git apply plan/SCREENSHOT-MOCK.patch
+
+To revert after screenshots are done:
+  git checkout mobile/src/contexts/AuthContext.tsx
+  git checkout mobile/src/screens/HomeScreen.tsx
+  git rm mobile/src/services/mockData.ts
+
+---
+
+Trigger words to type in the chat after applying:
+  list      → event list
+  create    → new event review card
+  update    → edit event card
+  delete    → select-to-delete list
+  conflict  → conflict resolution options
+  safety    → safety confirmation gate
+  plan      → plan summary with action log
+  leisure   → leisure search cards with free-time badges
+
+Screenshots on iOS Simulator: Cmd+S
+Screenshots on Android Emulator: camera button in emulator toolbar
+
+---
+diff --git a/mobile/src/contexts/AuthContext.tsx b/mobile/src/contexts/AuthContext.tsx
+--- a/mobile/src/contexts/AuthContext.tsx
++++ b/mobile/src/contexts/AuthContext.tsx
+@@ -35,33 +35,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+   const [isLoading, setIsLoading] = useState(true);
+
+   const refreshAuth = async () => {
+-    try {
+-      setIsLoading(true);
+-
+-      // Check if we have stored tokens
+-      const { accessToken, refreshToken } = await calendarAPI.getStoredTokens();
+-
+-      if (!accessToken || !refreshToken) {
+-        setUser(null);
+-        return;
+-      }
+-
+-      // Try to get current user to validate the token
+-      try {
+-        const currentUser = await calendarAPI.getCurrentUser();
+-        setUser(currentUser);
+-      } catch (error) {
+-        console.error('Token validation failed:', error);
+-        // Token is invalid, clear user state and tokens
+-        setUser(null);
+-        await calendarAPI.logout();
+-      }
+-    } catch (error) {
+-      console.error('Error refreshing auth:', error);
+-      setUser(null);
+-    } finally {
+-      setIsLoading(false);
+-    }
++    // SCREENSHOT MOCK — bypass auth check, remove before shipping
++    setUser({ name: 'Naveen' });
++    setIsLoading(false);
+   };
+
+   useEffect(() => {
+diff --git a/mobile/src/screens/HomeScreen.tsx b/mobile/src/screens/HomeScreen.tsx
+--- a/mobile/src/screens/HomeScreen.tsx
++++ b/mobile/src/screens/HomeScreen.tsx
+@@ -20,6 +20,7 @@ import SafetyConfirmationComponent from '../components/SafetyConfirmationCompone
+ import LeisureSearchComponent, { LeisureEvent } from '../components/LeisureSearchComponent';
+ import { useCalendarAPI } from '../services/api';
++import { getMockResponse } from '../services/mockData'; // SCREENSHOT MOCK — remove before shipping
+ import { useAuth } from '../contexts/AuthContext';
+ import { Event, EventCreate } from '../models/event';
+
+@@ -139,7 +140,7 @@ export default function HomeScreen() {
+   const handleProcessText = async (text: string) => {
+     setIsThinking(true);
+     try {
+-      const response = await processText(text)
++      const response = getMockResponse(text) ?? await processText(text) // SCREENSHOT MOCK — remove getMockResponse before shipping
+
+       if (response && typeof response === 'object' && response.type === 'list' && response.events) {
+diff --git a/mobile/src/services/mockData.ts b/mobile/src/services/mockData.ts
+new file mode 100644
+--- /dev/null
++++ b/mobile/src/services/mockData.ts
+@@ -0,0 +1,249 @@
++/**
++ * MOCK DATA — for design screenshots only.
++ * Remove this file and the mock hook in HomeScreen.tsx before shipping.
++ *
++ * Usage: type one of the trigger words in the chat input:
++ *   "list"     → ListComponent (upcoming events)
++ *   "create"   → CreateComponent (new event review)
++ *   "update"   → UpdateComponent (edit event)
++ *   "delete"   → DeleteComponent (select to delete)
++ *   "conflict" → ConflictResolutionComponent
++ *   "plan"     → plan summary
++ *   "safety"   → safety confirmation gate
++ *   "leisure"  → LeisureSearchComponent
++ */
++
++// ── Shared sample events ──────────────────────────────────────────────────
++
++const EVENTS = [
++  {
++    id: 'e1',
++    title: 'Team Standup',
++    startDate: '2026-03-23T09:00:00',
++    endDate: '2026-03-23T09:30:00',
++    duration: 30,
++    location: 'Zoom',
++    priority: 'mandatory',
++    flexibility: 'fixed',
++    category: 'work',
++    user_id: 1,
++  },
++  {
++    id: 'e2',
++    title: 'CIS 600 Lecture',
++    startDate: '2026-03-23T11:00:00',
++    endDate: '2026-03-23T12:15:00',
++    duration: 75,
++    location: 'Link Hall 105',
++    priority: 'mandatory',
++    flexibility: 'fixed',
++    category: 'study',
++    user_id: 1,
++  },
++  {
++    id: 'e3',
++    title: 'Gym Session',
++    startDate: '2026-03-23T17:00:00',
++    endDate: '2026-03-23T18:00:00',
++    duration: 60,
++    location: 'Barnes Center',
++    priority: 'optional',
++    flexibility: 'movable',
++    category: 'personal',
++    user_id: 1,
++  },
++  {
++    id: 'e4',
++    title: 'Project Work Session',
++    startDate: '2026-03-24T14:00:00',
++    endDate: '2026-03-24T16:00:00',
++    duration: 120,
++    location: 'Bird Library',
++    priority: 'optional',
++    flexibility: 'movable',
++    category: 'study',
++    user_id: 1,
++  },
++  {
++    id: 'e5',
++    title: 'Dinner with Friends',
++    startDate: '2026-03-24T19:00:00',
++    endDate: '2026-03-24T21:00:00',
++    duration: 120,
++    location: 'Pastabilities, Syracuse',
++    priority: 'optional',
++    flexibility: 'movable',
++    category: 'personal',
++    user_id: 1,
++  },
++];
++
++// ── Mock responses keyed by trigger word ─────────────────────────────────
++
++export const MOCK_RESPONSES: Record<string, object> = {
++
++  list: {
++    type: 'list',
++    message: "Here are your events for the next 3 days:",
++    events: EVENTS,
++  },
++
++  create: {
++    type: 'create',
++    message: "I'll create this event — please confirm:",
++    events: [
++      {
++        title: 'Research Paper Review',
++        startDate: '2026-03-25T10:00:00',
++        duration: 90,
++        location: 'Bird Library',
++        priority: 'optional',
++        flexibility: 'movable',
++        category: 'study',
++      },
++    ],
++    conflict_events: null,
++  },
++
++  conflict: {
++    type: 'conflict_resolution',
++    message: "There's a scheduling conflict with your Team Standup. How would you like to resolve it?",
++    options: [
++      { option_num: 1, description: 'Keep the new event, reschedule Team Standup to 10:00 AM', action: 'reschedule_existing' },
++      { option_num: 2, description: 'Keep Team Standup, reschedule the new event to 10:30 AM', action: 'reschedule_new' },
++      { option_num: 3, description: 'Cancel the new event', action: 'cancel_new' },
++    ],
++  },
++
++  update: {
++    type: 'update',
++    message: "I found this event to update — please confirm the changes:",
++    events: [EVENTS[0]],
++    update_arguments: { location: 'Google Meet', duration: 45 },
++    update_conflict_event: null,
++  },
++
++  delete: {
++    type: 'delete',
++    message: "Select the events you'd like to delete:",
++    events: EVENTS,
++  },
++
++  safety: {
++    type: 'confirmation_required',
++    message: "You're about to delete 2 mandatory events. Are you sure?",
++    confirmation_type: 'delete_safety',
++    events: [EVENTS[0], EVENTS[1]],
++  },
++
++  plan: {
++    type: 'plan_summary',
++    message: "Done! Here's what I scheduled for your week:",
++    changes: [
++      { action: 'created', event_title: 'Study Block — Algorithms', event_start: '2026-03-23T08:00:00', detail: 'morning slot' },
++      { action: 'created', event_title: 'Study Block — Algorithms', event_start: '2026-03-24T08:00:00', detail: 'morning slot' },
++      { action: 'created', event_title: 'Study Block — Algorithms', event_start: '2026-03-25T08:00:00', detail: 'morning slot' },
++      { action: 'skipped', event_title: 'Study Block — Algorithms', event_start: '2026-03-26T08:00:00', detail: 'no free slot found' },
++      { action: 'created', event_title: 'Review Session', event_start: '2026-03-27T14:00:00', detail: 'afternoon slot' },
++    ],
++  },
++
++  leisure: {
++    type: 'leisure_search',
++    message: "I found 5 events this weekend in Syracuse — 3 fit your free time!",
++    events: [
++      {
++        external_id: 'tm1',
++        title: 'Syracuse Crunch vs Rochester Americans',
++        description: 'AHL hockey game — local rivals.',
++        start_date: '2026-03-22T19:00:00',
++        end_date: '2026-03-22T21:30:00',
++        duration: 150,
++        venue_name: 'Upstate Medical University Arena',
++        venue_address: '800 S State St',
++        city: 'Syracuse',
++        category: 'sports',
++        price_range: '$18 - $75',
++        url: 'https://www.ticketmaster.com',
++        image_url: '',
++        fits_free_time: true,
++      },
++      {
++        external_id: 'tm2',
++        title: 'Vampire Weekend',
++        description: 'Indie rock band on the Only God Was Above Us tour.',
++        start_date: '2026-03-21T20:00:00',
++        end_date: '2026-03-21T23:00:00',
++        duration: 180,
++        venue_name: 'The Oncenter',
++        venue_address: '800 S State St',
++        city: 'Syracuse',
++        category: 'music',
++        price_range: '$45 - $120',
++        url: 'https://www.ticketmaster.com',
++        image_url: '',
++        fits_free_time: true,
++      },
++      {
++        external_id: 'tm3',
++        title: 'Syracuse Stage: Into the Woods',
++        description: 'Stephen Sondheim\'s beloved musical fairy tale.',
++        start_date: '2026-03-22T14:00:00',
++        end_date: '2026-03-22T17:00:00',
++        duration: 180,
++        venue_name: 'Archbold Theatre',
++        venue_address: '820 E Genesee St',
++        city: 'Syracuse',
++        category: 'arts',
++        price_range: '$28 - $65',
++        url: 'https://www.ticketmaster.com',
++        image_url: '',
++        fits_free_time: true,
++      },
++      {
++        external_id: 'tm4',
++        title: 'Syracuse University Men\'s Basketball',
++        description: 'Orange vs. Notre Dame — Big East Conference.',
++        start_date: '2026-03-21T12:00:00',
++        end_date: '2026-03-21T14:30:00',
++        duration: 150,
++        venue_name: 'JMA Wireless Dome',
++        venue_address: '900 Irving Ave',
++        city: 'Syracuse',
++        category: 'sports',
++        price_range: '$22 - $90',
++        url: 'https://www.ticketmaster.com',
++        image_url: '',
++        fits_free_time: false,
++      },
++      {
++        external_id: 'tm5',
++        title: 'CNY Jazz Fest 2026',
++        description: 'Annual outdoor jazz festival featuring local & national acts.',
++        start_date: '2026-03-22T12:00:00',
++        end_date: '2026-03-22T20:00:00',
++        duration: 480,
++        venue_name: 'Clinton Square',
++        venue_address: '1 Clinton Square',
++        city: 'Syracuse',
++        category: 'music',
++        price_range: 'Free',
++        url: 'https://www.ticketmaster.com',
++        image_url: '',
++        fits_free_time: false,
++      },
++    ],
++  },
++};
++
++/**
++ * Returns a mock response if the input matches a trigger word,
++ * otherwise returns null (meaning: call the real API).
++ */
++export function getMockResponse(text: string): object | null {
++  const lower = text.trim().toLowerCase();
++  for (const [trigger, response] of Object.entries(MOCK_RESPONSES)) {
++    if (lower.includes(trigger)) return response;
++  }
++  return null;
++}

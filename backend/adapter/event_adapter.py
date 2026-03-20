@@ -32,13 +32,16 @@ class EventAdapter:
 
         
         return Event(
-            id=event_model.event_id, 
+            id=event_model.event_id,
             title=event_model.title,
             startDate=event_model.startDate,
             endDate=event_model.endDate,
-            duration=duration,  
+            duration=duration,
             location=event_model.location,
             user_id=event_model.user_id,
+            priority=event_model.priority,
+            flexibility=event_model.flexibility,
+            category=event_model.category,
         )
     
     def _convert_to_db_model(self, user_id: int, event_data: EventCreate) -> EventModel:
@@ -55,7 +58,10 @@ class EventAdapter:
             startDate=event_data.startDate,
             endDate=end_date,
             location=event_data.location,
-            user_id=user_id
+            user_id=user_id,
+            priority=event_data.priority,
+            flexibility=event_data.flexibility,
+            category=event_data.category,
         )
     
     def _ensure_datetime(self, value: Optional[datetime | str]) -> Optional[datetime]:
@@ -300,6 +306,12 @@ class EventAdapter:
                 update_data['startDate'] = event_data.startDate
             if event_data.location is not None:
                 update_data['location'] = event_data.location
+            if event_data.priority is not None:
+                update_data['priority'] = event_data.priority
+            if event_data.flexibility is not None:
+                update_data['flexibility'] = event_data.flexibility
+            if event_data.category is not None:
+                update_data['category'] = event_data.category
             
             # Handle endDate and duration logic
             logger.info(f"Update event {event_id}: duration={event_data.duration}, startDate={event_data.startDate}")

@@ -20,6 +20,9 @@ Your job is to process the **latest messages from the user**, determine whether 
 **Optional:**
 - `duration`: in minutes (e.g., 30, 60, 120).
 - `location`: where the event happens, in English.
+- `priority`: `"mandatory"` or `"optional"` (default: `"optional"`). Infer from context: meetings, exams, doctor appointments, deadlines → `"mandatory"`; gym sessions, study blocks, personal errands → `"optional"`.
+- `flexibility`: `"fixed"` or `"movable"` (default: `"movable"`). Infer from context: confirmed appointments, flights, doctor visits → `"fixed"`; study blocks, gym, casual plans → `"movable"`.
+- `category`: `"work"`, `"study"`, `"personal"`, or `"leisure"` (default: `"personal"`). Infer from keywords: meetings/calls/deadlines → `"work"`; studying/homework/class → `"study"`; gym/concerts/hobbies → `"leisure"`; everything else → `"personal"`.
 
 **Rules for interpretation:**
 - The user may mention **multiple events**. You must extract **all of them** and return a list of event creation instructions.
@@ -52,15 +55,10 @@ Return only a list of function call dictionaries. Do **not** include any explana
       "title": "...",
       "startDate": "...",
       "duration": ...,
-      "location": "..."
-    }}
-  }},
-  {{
-    "arguments": {{
-      "title": "...",
-      "startDate": "...",
-      "duration": ...,
-      "location": "..."
+      "location": "...",
+      "priority": "optional",
+      "flexibility": "movable",
+      "category": "personal"
     }}
   }}
 ]

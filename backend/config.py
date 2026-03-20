@@ -60,6 +60,20 @@ class Settings(BaseSettings):
     
     # Speech recognition settings
     SPEECH_RECOGNITION_TIMEOUT: int = Field(default=30, description="Speech recognition timeout")
+
+    # Google OAuth2 (for Gmail)
+    GOOGLE_CLIENT_ID: Optional[str] = Field(default=None, description="Google OAuth2 client ID")
+    GOOGLE_CLIENT_SECRET: Optional[str] = Field(default=None, description="Google OAuth2 client secret")
+    GOOGLE_REDIRECT_URI: str = Field(default="http://localhost:8000/auth/google/callback", description="Google OAuth2 redirect URI")
+
+    # Ticketmaster API (Leisure Search)
+    TICKETMASTER_API_KEY: Optional[str] = Field(default=None, description="Ticketmaster Discovery API key")
+
+    # Email RAG Pipeline
+    CHROMA_PERSIST_DIR: str = Field(default="./data/chroma", description="ChromaDB persistence directory")
+    GMAIL_CREDENTIALS_DIR: str = Field(default="./data/gmail_credentials", description="Per-user Gmail credential storage")
+    EMBEDDING_MODEL: str = Field(default="all-MiniLM-L6-v2", description="Sentence transformer model for email embeddings")
+    EMAIL_INDEX_REFRESH_MINUTES: int = Field(default=15, description="Minimum minutes between email index refreshes")
     
     @field_validator('BACKEND_CORS_ORIGINS', mode='before')
     @classmethod

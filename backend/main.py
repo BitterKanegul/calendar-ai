@@ -7,6 +7,7 @@ from controller.event_controller import router as event_router
 from controller.transcribe_controller import router as transcribe_router
 from controller.assistant_controller import router as assistant_router
 from controller.user_controller import router as auth_router
+from controller.google_auth_controller import router as google_auth_router
 from database import init_db
 from exceptions.validation_exception_handler import validation_exception_handler
 
@@ -50,6 +51,7 @@ except Exception as e:
 
 app.include_router(transcribe_router)
 app.include_router(assistant_router)
+app.include_router(google_auth_router)
 
 
 @app.get("/")

@@ -16,7 +16,12 @@ import ListComponent from '../components/ListComponent';
 import DeleteComponent from '../components/DeleteComponent';
 import CreateComponent from '../components/CreateComponent';
 import UpdateComponent from '../components/UpdateComponent';
+import ConflictResolutionComponent, { ConflictResolutionOption } from '../components/ConflictResolutionComponent';
+import EmailExtractionComponent, { ExtractedEmailEvent } from '../components/EmailExtractionComponent';
+import SafetyConfirmationComponent from '../components/SafetyConfirmationComponent';
+import LeisureSearchComponent, { LeisureEvent } from '../components/LeisureSearchComponent';
 import { useCalendarAPI } from '../services/api';
+import { getMockResponse } from '../services/mockData'; // SCREENSHOT MOCK — remove before shipping
 import { useAuth } from '../contexts/AuthContext';
 import { Event, EventCreate } from '../models/event';
 
@@ -49,8 +54,18 @@ interface ChatMessage {
   eventData?: EventCreate[] | EventCreate;
   events?: Event[];
   updateArguments?: any;
-  responseType?: 'text' | 'list' | 'delete' | 'create' | 'update';
+  responseType?: 'text' | 'list' | 'delete' | 'create' | 'update' | 'conflict_resolution' | 'plan_summary' | 'email_extraction' | 'confirmation_required' | 'leisure_search';
+  safetyConfirmationType?: 'delete_safety' | 'update_safety';
+  safetyEvents?: Array<{ id: string; title: string; startDate?: string }>;
+  safetyCompleted?: boolean;
   conflictEvent?: Event[] | Event;
+  conflictOptions?: ConflictResolutionOption[];
+  conflictResolutionCompleted?: boolean;
+  planChanges?: Array<{ action: string; event_title?: string; event_start?: string; detail?: string }>;
+  emailHigh?: ExtractedEmailEvent[];
+  emailMedium?: ExtractedEmailEvent[];
+  emailLow?: ExtractedEmailEvent[];
+  leisureEvents?: LeisureEvent[];
 }
 
 export default function HomeScreen() {
@@ -75,7 +90,7 @@ export default function HomeScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   
-  const addMessage = (type: 'user' | 'ai', content: string, eventData?: EventCreate[] | EventCreate, events?: Event[], responseType: 'text' | 'list' | 'delete' | 'create' | 'update' = 'text', updateArguments?: any, conflictEvent?: Event) => {
+  const addMessage = (type: 'user' | 'ai', content: string, eventData?: EventCreate[] | EventCreate, events?: Event[], responseType: ChatMessage['responseType'] = 'text', updateArguments?: any, conflictEvent?: Event, conflictOptions?: ConflictResolutionOption[], planChanges?: ChatMessage['planChanges'], emailHigh?: ExtractedEmailEvent[], emailMedium?: ExtractedEmailEvent[], emailLow?: ExtractedEmailEvent[], safetyConfirmationType?: ChatMessage['safetyConfirmationType'], safetyEvents?: ChatMessage['safetyEvents']) => {
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       type,
@@ -86,6 +101,15 @@ export default function HomeScreen() {
       updateArguments,
       responseType,
       conflictEvent,
+      conflictOptions,
+      conflictResolutionCompleted: false,
+      planChanges,
+      emailHigh,
+      emailMedium,
+      emailLow,
+      safetyConfirmationType,
+      safetyEvents,
+      safetyCompleted: false,
     };
     setMessages(prev => [...prev, newMessage]);
   };
@@ -115,7 +139,7 @@ export default function HomeScreen() {
   const handleProcessText = async (text: string) => {
     setIsThinking(true);
     try {
-      const response = await processText(text)
+      const response = getMockResponse(text) ?? await processText(text) // SCREENSHOT MOCK — remove getMockResponse before shipping
     
       if (response && typeof response === 'object' && response.type === 'list' && response.events) {
         addMessage('ai', response.message || 'Here are your events:', undefined, response.events, 'list')
@@ -128,6 +152,31 @@ export default function HomeScreen() {
       } else if (response && typeof response === 'object' && response.type === 'update' && response.events) {
         addMessage('ai', response.message || 'Select the events to update:', undefined, response.events, 'update', response.update_arguments, response.update_conflict_event)
         setHasUncompletedComponent(true);
+      } else if (response && typeof response === 'object' && response.type === 'conflict_resolution' && response.options) {
+        addMessage('ai', response.message || 'A conflict was detected. Please choose an option:', undefined, undefined, 'conflict_resolution', undefined, undefined, response.options)
+        setHasUncompletedComponent(true);
+      } else if (response && typeof response === 'object' && response.type === 'confirmation_required') {
+        const safetyEvts = (response.events || []).map((ev: any) => ({
+          id: ev.id,
+          title: ev.title,
+          startDate: ev.startDate,
+        }));
+        addMessage('ai', response.message || 'Please confirm this operation.', undefined, undefined, 'confirmation_required', undefined, undefined, undefined, undefined, undefined, undefined, undefined, response.confirmation_type, safetyEvts);
+        setHasUncompletedComponent(true);
+      } else if (response && typeof response === 'object' && response.type === 'leisure_search') {
+        const msg: ChatMessage = {
+          id: Date.now().toString(),
+          type: 'ai',
+          content: response.message || 'Here are the events I found:',
+          timestamp: new Date(),
+          responseType: 'leisure_search',
+          leisureEvents: response.events || [],
+        };
+        setMessages(prev => [...prev, msg]);
+      } else if (response && typeof response === 'object' && response.type === 'email_extraction') {
+        addMessage('ai', response.message || 'Here is what I found in your emails:', undefined, undefined, 'email_extraction', undefined, undefined, undefined, undefined, response.high_confidence, response.medium_confidence, response.low_confidence)
+      } else if (response && typeof response === 'object' && response.type === 'plan_summary') {
+        addMessage('ai', response.message || 'Planning complete.', undefined, undefined, 'plan_summary', undefined, undefined, undefined, response.changes)
       } else {
         // Handle string responses or other types
         const message = typeof response === 'string' ? response : (response?.message || 'Command processed successfully.');
@@ -198,6 +247,89 @@ export default function HomeScreen() {
     }
   };
 
+  const handleAddEmailEvents = async (events: ExtractedEmailEvent[]) => {
+    if (!events.length) return;
+    try {
+      const eventsToCreate = events
+        .filter(ev => ev.start_date)
+        .map(ev => ({
+          title: ev.title,
+          startDate: new Date(ev.start_date!),
+          location: ev.location,
+        }));
+      if (eventsToCreate.length) {
+        await addEvents(eventsToCreate as any);
+      }
+      const skipped = events.length - eventsToCreate.length;
+      const msg = eventsToCreate.length
+        ? `Added ${eventsToCreate.length} event${eventsToCreate.length > 1 ? 's' : ''} from your emails!${skipped ? ` (${skipped} skipped — no date found)` : ''}`
+        : 'No events could be added — dates were missing.';
+      addMessage('ai', msg, undefined, undefined, 'text');
+      scrollToBottom();
+    } catch (error: any) {
+      addMessage('ai', error.response?.data?.detail || 'Could not add the selected events. Please try again.', undefined, undefined, 'text');
+      scrollToBottom();
+    }
+  };
+
+  const handleAddLeisureEvents = async (events: LeisureEvent[]) => {
+    if (!events.length) return;
+    try {
+      const eventsToCreate = events
+        .filter(ev => ev.start_date)
+        .map(ev => ({
+          title: ev.title,
+          startDate: new Date(ev.start_date!),
+          duration: ev.duration || 120,
+          location: ev.venue_name ? `${ev.venue_name}${ev.city ? ', ' + ev.city : ''}` : ev.city,
+        }));
+      if (eventsToCreate.length) {
+        await addEvents(eventsToCreate as any);
+      }
+      const msg = eventsToCreate.length
+        ? `Added ${eventsToCreate.length} event${eventsToCreate.length > 1 ? 's' : ''} to your calendar!`
+        : 'No events could be added — dates were missing.';
+      addMessage('ai', msg, undefined, undefined, 'text');
+      scrollToBottom();
+    } catch (error: any) {
+      addMessage('ai', error.response?.data?.detail || 'Could not add the selected events. Please try again.', undefined, undefined, 'text');
+      scrollToBottom();
+    }
+  };
+
+  const handleSafetyConfirm = async (messageId: string) => {
+    setMessages(prev => prev.map(msg =>
+      msg.id === messageId ? { ...msg, safetyCompleted: true } : msg
+    ));
+    setHasUncompletedComponent(false);
+    addMessage('user', 'Yes, proceed');
+    scrollToBottom();
+    await handleProcessText('yes');
+  };
+
+  const handleSafetyCancel = async (messageId: string) => {
+    setMessages(prev => prev.map(msg =>
+      msg.id === messageId ? { ...msg, safetyCompleted: true } : msg
+    ));
+    setHasUncompletedComponent(false);
+    addMessage('user', 'Cancel');
+    scrollToBottom();
+    await handleProcessText('no');
+  };
+
+  const handleConflictResolutionChoice = async (messageId: string, optionNum: number) => {
+    // Mark this message's conflict resolution as completed
+    setMessages(prev => prev.map(msg =>
+      msg.id === messageId ? { ...msg, conflictResolutionCompleted: true } : msg
+    ));
+    setHasUncompletedComponent(false);
+
+    const choiceText = String(optionNum);
+    addMessage('user', `Option ${optionNum}`);
+    scrollToBottom();
+    await handleProcessText(choiceText);
+  };
+
   // Function to mark component as completed
   const markComponentAsCompleted = () => {
     setHasUncompletedComponent(false);
@@ -237,13 +369,62 @@ export default function HomeScreen() {
           )}
 
           {message.responseType === 'update' && message.events && (
-            <UpdateComponent 
+            <UpdateComponent
               events={message.events}
               updateArguments={message.updateArguments || {}}
               onUpdate={handleUpdateEvent}
               onCompleted={markComponentAsCompleted}
               conflictEvent={message.conflictEvent as any}
             />
+          )}
+
+          {message.responseType === 'leisure_search' && message.leisureEvents && (
+            <LeisureSearchComponent
+              events={message.leisureEvents}
+              onAddSelected={handleAddLeisureEvents}
+            />
+          )}
+
+          {message.responseType === 'email_extraction' && (
+            <EmailExtractionComponent
+              highConfidence={message.emailHigh || []}
+              mediumConfidence={message.emailMedium || []}
+              lowConfidence={message.emailLow || []}
+              onAddSelected={handleAddEmailEvents}
+            />
+          )}
+
+          {message.responseType === 'confirmation_required' && message.safetyConfirmationType && !message.safetyCompleted && (
+            <SafetyConfirmationComponent
+              message=""
+              confirmationType={message.safetyConfirmationType}
+              events={message.safetyEvents || []}
+              onConfirm={() => handleSafetyConfirm(message.id)}
+              onCancel={() => handleSafetyCancel(message.id)}
+            />
+          )}
+
+          {message.responseType === 'conflict_resolution' && message.conflictOptions && (
+            <ConflictResolutionComponent
+              options={message.conflictOptions}
+              onChoose={(optionNum) => handleConflictResolutionChoice(message.id, optionNum)}
+              completed={message.conflictResolutionCompleted}
+            />
+          )}
+
+          {message.responseType === 'plan_summary' && message.planChanges && message.planChanges.length > 0 && (
+            <View style={{ marginTop: 8, gap: 4 }}>
+              {message.planChanges.map((ch, i) => (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                  <Text style={{ color: ch.action === 'created' ? '#a8f0c6' : ch.action === 'deleted' ? '#f0a8a8' : '#a8d0f0', fontSize: 11, fontWeight: 'bold', minWidth: 52 }}>
+                    {ch.action.toUpperCase()}
+                  </Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, flex: 1 }}>
+                    {ch.event_title || '—'}{ch.event_start ? ` · ${new Date(ch.event_start).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}` : ''}{ch.detail ? ` (${ch.detail})` : ''}
+                  </Text>
+                </View>
+              ))}
+            </View>
           )}
 
         </View>

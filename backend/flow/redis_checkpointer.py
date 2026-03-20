@@ -11,13 +11,20 @@ class MessagesOnlyRedisSaver(AsyncRedisSaver):
     """Custom Redis checkpointer that only saves message fields."""
     
     def _filter_state_for_checkpoint(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """Filter state to only include message fields."""
+        """Filter state to only include message fields and confirmation state."""
         message_fields = {
             'router_messages',
-            'create_messages', 
+            'create_messages',
             'delete_messages',
             'list_messages',
-            'update_messages'
+            'update_messages',
+            'email_messages',
+            'leisure_messages',
+            'awaiting_confirmation',
+            'resolution_plan',
+            'resolution_type',
+            'confirmation_type',
+            'confirmation_data',
         }
         
         # Only keep message fields from the state
@@ -32,10 +39,17 @@ class MessagesOnlyRedisSaver(AsyncRedisSaver):
         """Filter channel_versions to only include message field versions."""
         message_fields = {
             'router_messages',
-            'create_messages', 
+            'create_messages',
             'delete_messages',
             'list_messages',
-            'update_messages'
+            'update_messages',
+            'email_messages',
+            'leisure_messages',
+            'awaiting_confirmation',
+            'resolution_plan',
+            'resolution_type',
+            'confirmation_type',
+            'confirmation_data',
         }
         
         # Only keep versions for message fields

@@ -1,6 +1,7 @@
 from typing import Optional, List
 from datetime import datetime as dt
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from database.models.event import EventPriority, EventFlexibility, EventCategory
 
 
 # User Models
@@ -37,6 +38,9 @@ class EventBase(BaseModel):
     endDate: dt  # End date
     duration: Optional[int] = None  # Duration in minutes for input
     location: Optional[str] = None
+    priority: EventPriority = EventPriority.OPTIONAL
+    flexibility: EventFlexibility = EventFlexibility.MOVABLE
+    category: EventCategory = EventCategory.PERSONAL
 
     class Config:
         json_encoders = {
@@ -48,6 +52,9 @@ class EventCreate(BaseModel):
     startDate: dt
     duration: Optional[int] = None  # Duration in minutes for input
     location: Optional[str] = None
+    priority: EventPriority = EventPriority.OPTIONAL
+    flexibility: EventFlexibility = EventFlexibility.MOVABLE
+    category: EventCategory = EventCategory.PERSONAL
 
     class Config:
         json_encoders = {
@@ -59,6 +66,9 @@ class EventUpdate(BaseModel):
     startDate: Optional[dt] = None
     duration: Optional[int] = None  # Duration in minutes for input
     location: Optional[str] = None
+    priority: Optional[EventPriority] = None
+    flexibility: Optional[EventFlexibility] = None
+    category: Optional[EventCategory] = None
 
     class Config:
         json_encoders = {
@@ -137,3 +147,76 @@ class SuccessfulUpdateResponse(BaseModel):
     events: List[Event]
     update_arguments: dict
     update_conflict_event: Optional[Event] = None
+
+
+class ConflictResolutionOption(BaseModel):
+    option_num: int
+    description: str
+    action: str
+
+
+class SuccessfulConflictResolutionResponse(BaseModel):
+    type: str = "conflict_resolution"
+    message: str
+    options: List[ConflictResolutionOption]
+
+
+class PlanChange(BaseModel):
+    action: str             # "created", "updated", "deleted", "skipped"
+    event_title: Optional[str] = None
+    event_start: Optional[str] = None
+    detail: Optional[str] = None
+
+
+class SuccessfulPlanResponse(BaseModel):
+    type: str = "plan_summary"
+    message: str
+    changes: List[PlanChange] = []
+
+
+class ExtractedEmailEvent(BaseModel):
+    title: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    location: Optional[str] = None
+    confidence: str           # "high" | "medium" | "low"
+    source_type: Optional[str] = None
+    evidence: Optional[str] = None
+
+
+class EmailExtractionResponse(BaseModel):
+    type: str = "email_extraction"
+    message: str
+    high_confidence: List[ExtractedEmailEvent] = []
+    medium_confidence: List[ExtractedEmailEvent] = []
+    low_confidence: List[ExtractedEmailEvent] = []
+
+
+class LeisureEvent(BaseModel):
+    external_id: str
+    title: str
+    description: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    duration: Optional[int] = None
+    venue_name: Optional[str] = None
+    venue_address: Optional[str] = None
+    city: Optional[str] = None
+    category: Optional[str] = None
+    price_range: Optional[str] = None
+    url: Optional[str] = None
+    image_url: Optional[str] = None
+    fits_free_time: bool = False
+
+
+class LeisureSearchResponse(BaseModel):
+    type: str = "leisure_search"
+    message: str
+    events: List[LeisureEvent] = []
+
+
+class ConfirmationRequiredResponse(BaseModel):
+    type: str = "confirmation_required"
+    message: str
+    confirmation_type: str   # "delete_safety" | "update_safety"
+    events: List[Event] = []

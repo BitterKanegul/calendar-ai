@@ -16,6 +16,10 @@ retryable_exceptions = (OpenAIError, RateLimitError)
     retry=retry_if_exception_type(retryable_exceptions),
 )
 async def router_agent(state: FlowState):
+    # Skip LLM routing when waiting for conflict resolution confirmation
+    if state.get("awaiting_confirmation"):
+        return state
+
     template = PromptTemplate.from_template(ROUTER_AGENT_PROMPT)
     prompt_text = template.format()
 
@@ -23,19 +27,26 @@ async def router_agent(state: FlowState):
         state["router_messages"][0] = SystemMessage(content=prompt_text)
     else:
         state["router_messages"].insert(0, SystemMessage(content=prompt_text))
-    
+
     response = [await model.ainvoke(state["router_messages"])]
-    
+
     # Parse the JSON response
     try:
         route_data = json.loads(response[0].content)
         state['route'] = route_data
     except json.JSONDecodeError:
         state['route'] = response[0].content
-    
+
     return state
 
 def route_action(state: FlowState):
+    # If waiting for any confirmation, bypass normal routing
+    if state.get("awaiting_confirmation"):
+        confirmation_type = state.get("confirmation_type")
+        if confirmation_type in ("delete_safety", "update_safety"):
+            return "safety_confirmation_handler"
+        return "confirmation_handler"  # conflict resolution
+
     if isinstance(state['route'], dict) and "route" in state['route']:
         route = state["route"]["route"]
 
@@ -48,6 +59,12 @@ def route_action(state: FlowState):
                 return "delete_date_range_agent"
             case "list":
                 return "list_date_range_agent"
+            case "plan":
+                return "plan_executor"
+            case "email":
+                return "email_retrieval_agent"
+            case "leisure":
+                return "leisure_search_agent"
             case _:
                 return 'router_message_handler'
     return 'router_message_handler'

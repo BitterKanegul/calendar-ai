@@ -35,33 +35,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshAuth = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Check if we have stored tokens
-      const { accessToken, refreshToken } = await calendarAPI.getStoredTokens();
-      
-      if (!accessToken || !refreshToken) {
-        setUser(null);
-        return;
-      }
-      
-      // Try to get current user to validate the token
-      try {
-        const currentUser = await calendarAPI.getCurrentUser();
-        setUser(currentUser);
-      } catch (error) {
-        console.error('Token validation failed:', error);
-        // Token is invalid, clear user state and tokens
-        setUser(null);
-        await calendarAPI.logout();
-      }
-    } catch (error) {
-      console.error('Error refreshing auth:', error);
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
+    // SCREENSHOT MOCK — bypass auth check, remove before shipping
+    setUser({ name: 'Naveen' });
+    setIsLoading(false);
   };
 
   useEffect(() => {
