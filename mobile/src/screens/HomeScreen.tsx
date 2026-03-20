@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -7,55 +7,64 @@ import {
   TextInput,
   Platform,
   TouchableOpacity,
-} from 'react-native';
-import { Text, Avatar, IconButton } from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
-import MicButton from '../components/MicButton';
-import ListComponent from '../components/ListComponent';
-import DeleteComponent from '../components/DeleteComponent';
-import CreateComponent from '../components/CreateComponent';
-import UpdateComponent from '../components/UpdateComponent';
-import ConflictResolutionComponent, { ConflictResolutionOption } from '../components/ConflictResolutionComponent';
-import EmailExtractionComponent, { ExtractedEmailEvent } from '../components/EmailExtractionComponent';
-import SafetyConfirmationComponent from '../components/SafetyConfirmationComponent';
-import LeisureSearchComponent, { LeisureEvent } from '../components/LeisureSearchComponent';
-import { useCalendarAPI } from '../services/api';
-import { getMockResponse } from '../services/mockData'; // SCREENSHOT MOCK — remove before shipping
-import { useAuth } from '../contexts/AuthContext';
-import { Event, EventCreate } from '../models/event';
-
+} from "react-native";
+import { Text, Avatar, IconButton } from "react-native-paper";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+import MicButton from "../components/MicButton";
+import ListComponent from "../components/ListComponent";
+import DeleteComponent from "../components/DeleteComponent";
+import CreateComponent from "../components/CreateComponent";
+import UpdateComponent from "../components/UpdateComponent";
+import ConflictResolutionComponent, { ConflictResolutionOption } from "../components/ConflictResolutionComponent";
+import EmailExtractionComponent, { ExtractedEmailEvent } from "../components/EmailExtractionComponent";
+import SafetyConfirmationComponent from "../components/SafetyConfirmationComponent";
+import LeisureSearchComponent, { LeisureEvent } from "../components/LeisureSearchComponent";
+import { useCalendarAPI } from "../services/api";
+import { getMockResponse } from "../services/mockData"; // SCREENSHOT MOCK — remove before shipping
+import { useAuth } from "../contexts/AuthContext";
+import { Event, EventCreate } from "../models/event";
 
 // Animated thinking dots component
 const ThinkingDots = () => {
-  const [dots, setDots] = useState('');
+  const [dots, setDots] = useState("");
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setDots(prev => {
-        if (prev === '...') return '';
-        if (prev === '..') return '...';
-        if (prev === '.') return '..';
-        return '.';
+      setDots((prev) => {
+        if (prev === "...") return "";
+        if (prev === "..") return "...";
+        if (prev === ".") return "..";
+        return ".";
       });
     }, 500);
 
     return () => clearInterval(interval);
   }, []);
 
-  return <Text style={{ fontSize: 16, lineHeight: 22, color: 'rgba(255, 255, 255, 0.9)' }}>{dots}</Text>;
+  return (
+    <Text
+      style={{
+        fontSize: 16,
+        lineHeight: 22,
+        color: "rgba(255, 255, 255, 0.9)",
+      }}
+    >
+      {dots}
+    </Text>
+  );
 };
 
 interface ChatMessage {
   id: string;
-  type: 'user' | 'ai';
+  type: "user" | "ai";
   content: string;
   timestamp: Date;
   eventData?: EventCreate[] | EventCreate;
   events?: Event[];
   updateArguments?: any;
-  responseType?: 'text' | 'list' | 'delete' | 'create' | 'update' | 'conflict_resolution' | 'plan_summary' | 'email_extraction' | 'confirmation_required' | 'leisure_search';
-  safetyConfirmationType?: 'delete_safety' | 'update_safety';
+  responseType?: "text" | "list" | "delete" | "create" | "update" | "conflict_resolution" | "plan_summary" | "email_extraction" | "confirmation_required" | "leisure_search";
+  safetyConfirmationType?: "delete_safety" | "update_safety";
   safetyEvents?: Array<{ id: string; title: string; startDate?: string }>;
   safetyCompleted?: boolean;
   conflictEvent?: Event[] | Event;
@@ -73,28 +82,34 @@ export default function HomeScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: Date.now().toString(),
-      type: 'ai',
-      content: 'Hello, I am your AI calendar assistant. How can I help you?',
+      type: "ai",
+      content: "Hello, I am your AI calendar assistant. How can I help you?",
       timestamp: new Date(),
       eventData: undefined,
       events: undefined,
-      responseType: 'text',
-    }
+      responseType: "text",
+    },
   ]);
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [hasUncompletedComponent, setHasUncompletedComponent] = useState(false);
-  const { transcribeAudio, addEvents, processText, deleteMultipleEvents, updateEvent } = useCalendarAPI();
+  const {
+    transcribeAudio,
+    addEvents,
+    processText,
+    deleteMultipleEvents,
+    updateEvent,
+  } = useCalendarAPI();
   const { user } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
-  
-  const addMessage = (type: 'user' | 'ai', content: string, eventData?: EventCreate[] | EventCreate, events?: Event[], responseType: ChatMessage['responseType'] = 'text', updateArguments?: any, conflictEvent?: Event, conflictOptions?: ConflictResolutionOption[], planChanges?: ChatMessage['planChanges'], emailHigh?: ExtractedEmailEvent[], emailMedium?: ExtractedEmailEvent[], emailLow?: ExtractedEmailEvent[], safetyConfirmationType?: ChatMessage['safetyConfirmationType'], safetyEvents?: ChatMessage['safetyEvents']) => {
+
+  const addMessage = (type: "user" | "ai", content: string, eventData?: EventCreate[] | EventCreate, events?: Event[], responseType: ChatMessage['responseType'] = "text", updateArguments?: any, conflictEvent?: Event, conflictOptions?: ConflictResolutionOption[], planChanges?: ChatMessage['planChanges'], emailHigh?: ExtractedEmailEvent[], emailMedium?: ExtractedEmailEvent[], emailLow?: ExtractedEmailEvent[], safetyConfirmationType?: ChatMessage['safetyConfirmationType'], safetyEvents?: ChatMessage['safetyEvents']) => {
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       type,
-      content: content ? content.trim() : '',
+      content: content ? content.trim() : "",
       timestamp: new Date(),
       eventData,
       events,
@@ -111,7 +126,7 @@ export default function HomeScreen() {
       safetyEvents,
       safetyCompleted: false,
     };
-    setMessages(prev => [...prev, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
   };
 
   const scrollToBottom = () => {
@@ -124,33 +139,58 @@ export default function HomeScreen() {
     if (!inputText.trim()) return;
 
     const userMessage = inputText.trim();
-    addMessage('user', userMessage);
-    setInputText('');
+    addMessage("user", userMessage);
+    setInputText("");
     scrollToBottom();
-    await handleProcessText(userMessage)
+    await handleProcessText(userMessage);
 
     // Maintain focus on the input
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-
   };
 
   const handleProcessText = async (text: string) => {
     setIsThinking(true);
     try {
-      const response = getMockResponse(text) ?? await processText(text) // SCREENSHOT MOCK — remove getMockResponse before shipping
-    
-      if (response && typeof response === 'object' && response.type === 'list' && response.events) {
-        addMessage('ai', response.message || 'Here are your events:', undefined, response.events, 'list')
-      } else if (response && typeof response === 'object' && response.type === 'delete' && response.events) {
-        addMessage('ai', response.message || 'Select the events to delete:', undefined, response.events, 'delete')
+      const response = getMockResponse(text) ?? await processText(text); // SCREENSHOT MOCK — remove getMockResponse before shipping
+
+      if (response && typeof response === "object" && response.type === "list" && response.events) {
+        addMessage("ai", response.message || "Here are your events:", undefined, response.events, "list");
+      } else if (response && typeof response === "object" && response.type === "delete" && response.events) {
+        addMessage("ai", response.message || "Select the events to delete:", undefined, response.events, "delete");
         setHasUncompletedComponent(true);
-      } else if (response && typeof response === 'object' && response.type === 'create' && response.events) {
-        addMessage('ai', response.message || 'Please review the event details:', response.events, undefined, 'create', undefined, response.conflict_events)
+      } else if (
+        response &&
+        typeof response === "object" &&
+        response.type === "create" &&
+        response.events
+      ) {
+        addMessage(
+          "ai",
+          response.message || "Please review the event details:",
+          response.events,
+          undefined,
+          "create",
+          undefined,
+          response.conflict_events
+        );
         setHasUncompletedComponent(true);
-      } else if (response && typeof response === 'object' && response.type === 'update' && response.events) {
-        addMessage('ai', response.message || 'Select the events to update:', undefined, response.events, 'update', response.update_arguments, response.update_conflict_event)
+      } else if (
+        response &&
+        typeof response === "object" &&
+        response.type === "update" &&
+        response.events
+      ) {
+        addMessage(
+          "ai",
+          response.message || "Select the events to update:",
+          undefined,
+          response.events,
+          "update",
+          response.update_arguments,
+          response.update_conflict_event
+        );
         setHasUncompletedComponent(true);
       } else if (response && typeof response === 'object' && response.type === 'conflict_resolution' && response.options) {
         addMessage('ai', response.message || 'A conflict was detected. Please choose an option:', undefined, undefined, 'conflict_resolution', undefined, undefined, response.options)
@@ -179,33 +219,42 @@ export default function HomeScreen() {
         addMessage('ai', response.message || 'Planning complete.', undefined, undefined, 'plan_summary', undefined, undefined, undefined, response.changes)
       } else {
         // Handle string responses or other types
-        const message = typeof response === 'string' ? response : (response?.message || 'Command processed successfully.');
-        addMessage('ai', message, undefined, undefined, 'text')
+        const message =
+          typeof response === "string"
+            ? response
+            : response?.message || "Command processed successfully.";
+        addMessage("ai", message, undefined, undefined, "text");
       }
-      
+
       scrollToBottom();
     } catch (error) {
-      addMessage('ai', 'Sorry, I couldn\'t process your command. Please try again.');
+      addMessage(
+        "ai",
+        "Sorry, I couldn't process your command. Please try again."
+      );
       scrollToBottom();
     } finally {
       setIsThinking(false);
     }
-  }
+  };
 
   const handleVoiceCommand = async (audioUri: string) => {
     setIsProcessing(true);
 
     try {
       const response = await transcribeAudio(audioUri);
-      const userMessage = response.message || 'Voice command processed';
-      addMessage('user', userMessage);
+      const userMessage = response.message || "Voice command processed";
+      addMessage("user", userMessage);
       scrollToBottom();
-      await handleProcessText(userMessage)
+      await handleProcessText(userMessage);
 
       //await processCommand(userMessage);
     } catch (error) {
-      console.error('Error processing voice command:', error);
-      addMessage('ai', 'Sorry, I couldn\'t process your voice command. Please try again.');
+      console.error("Error processing voice command:", error);
+      addMessage(
+        "ai",
+        "Sorry, I couldn't process your voice command. Please try again."
+      );
       scrollToBottom();
     } finally {
       setIsProcessing(false);
@@ -215,10 +264,22 @@ export default function HomeScreen() {
   const handleDeleteEvent = async (eventIds: string[]) => {
     try {
       const response = await deleteMultipleEvents(eventIds);
-      addMessage('ai', response.message || 'Events deleted successfully!', undefined, undefined, 'text');
+      addMessage(
+        "ai",
+        response.message || "Events deleted successfully!",
+        undefined,
+        undefined,
+        "text"
+      );
       scrollToBottom();
     } catch (error) {
-      addMessage('ai', 'Events could not be deleted. Please try again.', undefined, undefined, 'text');
+      addMessage(
+        "ai",
+        "Events could not be deleted. Please try again.",
+        undefined,
+        undefined,
+        "text"
+      );
       scrollToBottom();
     }
   };
@@ -226,11 +287,19 @@ export default function HomeScreen() {
   const handleCreateEvent = async (eventData: EventCreate[]) => {
     try {
       await addEvents(eventData);
-      addMessage('ai', 'Event created successfully!', undefined, undefined, 'text');
+      addMessage(
+        "ai",
+        "Event created successfully!",
+        undefined,
+        undefined,
+        "text"
+      );
       scrollToBottom();
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Event could not be created. Please try again.'
-      addMessage('ai', message, undefined, undefined, 'text');
+      const message =
+        error.response?.data?.detail ||
+        "Event could not be created. Please try again.";
+      addMessage("ai", message, undefined, undefined, "text");
       scrollToBottom();
     }
   };
@@ -238,11 +307,19 @@ export default function HomeScreen() {
   const handleUpdateEvent = async (eventId: string, updatedEvent: any) => {
     try {
       await updateEvent(eventId, updatedEvent);
-      addMessage('ai', 'Event updated successfully!', undefined, undefined, 'text');
+      addMessage(
+        "ai",
+        "Event updated successfully!",
+        undefined,
+        undefined,
+        "text"
+      );
       scrollToBottom();
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Event could not be updated. Please try again.'
-      addMessage('ai', message, undefined, undefined, 'text');
+      const message =
+        error.response?.data?.detail ||
+        "Event could not be updated. Please try again.";
+      addMessage("ai", message, undefined, undefined, "text");
       scrollToBottom();
     }
   };
@@ -336,31 +413,45 @@ export default function HomeScreen() {
   };
 
   const renderMessage = (message: ChatMessage) => {
-    const isUser = message.type === 'user';
+    const isUser = message.type === "user";
 
     return (
-      <View key={message.id} style={[styles.messageContainer, isUser ? styles.userMessage : styles.aiMessage]}>
-        <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
-          <Text style={[styles.messageText, isUser ? styles.userMessageText : styles.aiMessageText]}>
+      <View
+        key={message.id}
+        style={[
+          styles.messageContainer,
+          isUser ? styles.userMessage : styles.aiMessage,
+        ]}
+      >
+        <View
+          style={[
+            styles.messageBubble,
+            isUser ? styles.userBubble : styles.aiBubble,
+          ]}
+        >
+          <Text
+            style={[
+              styles.messageText,
+              isUser ? styles.userMessageText : styles.aiMessageText,
+            ]}
+          >
             {message.content}
           </Text>
 
-          {message.responseType === 'list' && message.events && (
-            <ListComponent 
-              events={message.events} 
-            />
+          {message.responseType === "list" && message.events && (
+            <ListComponent events={message.events} />
           )}
 
-          {message.responseType === 'delete' && message.events && (
-            <DeleteComponent 
+          {message.responseType === "delete" && message.events && (
+            <DeleteComponent
               events={message.events}
               onDelete={handleDeleteEvent}
               onCompleted={markComponentAsCompleted}
             />
           )}
 
-          {message.responseType === 'create' && message.eventData && (
-            <CreateComponent 
+          {message.responseType === "create" && message.eventData && (
+            <CreateComponent
               eventData={message.eventData as unknown as EventCreate[]}
               onCreate={handleCreateEvent}
               onCompleted={markComponentAsCompleted}
@@ -368,7 +459,7 @@ export default function HomeScreen() {
             />
           )}
 
-          {message.responseType === 'update' && message.events && (
+          {message.responseType === "update" && message.events && (
             <UpdateComponent
               events={message.events}
               updateArguments={message.updateArguments || {}}
@@ -378,14 +469,14 @@ export default function HomeScreen() {
             />
           )}
 
-          {message.responseType === 'leisure_search' && message.leisureEvents && (
+          {message.responseType === "leisure_search" && message.leisureEvents && (
             <LeisureSearchComponent
               events={message.leisureEvents}
               onAddSelected={handleAddLeisureEvents}
             />
           )}
 
-          {message.responseType === 'email_extraction' && (
+          {message.responseType === "email_extraction" && (
             <EmailExtractionComponent
               highConfidence={message.emailHigh || []}
               mediumConfidence={message.emailMedium || []}
@@ -394,7 +485,7 @@ export default function HomeScreen() {
             />
           )}
 
-          {message.responseType === 'confirmation_required' && message.safetyConfirmationType && !message.safetyCompleted && (
+          {message.responseType === "confirmation_required" && message.safetyConfirmationType && !message.safetyCompleted && (
             <SafetyConfirmationComponent
               message=""
               confirmationType={message.safetyConfirmationType}
@@ -404,7 +495,7 @@ export default function HomeScreen() {
             />
           )}
 
-          {message.responseType === 'conflict_resolution' && message.conflictOptions && (
+          {message.responseType === "conflict_resolution" && message.conflictOptions && (
             <ConflictResolutionComponent
               options={message.conflictOptions}
               onChoose={(optionNum) => handleConflictResolutionChoice(message.id, optionNum)}
@@ -412,15 +503,15 @@ export default function HomeScreen() {
             />
           )}
 
-          {message.responseType === 'plan_summary' && message.planChanges && message.planChanges.length > 0 && (
+          {message.responseType === "plan_summary" && message.planChanges && message.planChanges.length > 0 && (
             <View style={{ marginTop: 8, gap: 4 }}>
               {message.planChanges.map((ch, i) => (
-                <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
-                  <Text style={{ color: ch.action === 'created' ? '#a8f0c6' : ch.action === 'deleted' ? '#f0a8a8' : '#a8d0f0', fontSize: 11, fontWeight: 'bold', minWidth: 52 }}>
+                <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+                  <Text style={{ color: ch.action === "created" ? "#a8f0c6" : ch.action === "deleted" ? "#f0a8a8" : "#a8d0f0", fontSize: 11, fontWeight: "bold", minWidth: 52 }}>
                     {ch.action.toUpperCase()}
                   </Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, flex: 1 }}>
-                    {ch.event_title || '—'}{ch.event_start ? ` · ${new Date(ch.event_start).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}` : ''}{ch.detail ? ` (${ch.detail})` : ''}
+                  <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, flex: 1 }}>
+                    {ch.event_title || "—"}{ch.event_start ? ` · ${new Date(ch.event_start).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}` : ""}{ch.detail ? ` (${ch.detail})` : ""}
                   </Text>
                 </View>
               ))}
@@ -433,20 +524,19 @@ export default function HomeScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={['#667eea', '#764ba2']}
-      style={styles.container}
-    >
+    <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile' as never)}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Profile" as never)}
+        >
           <View style={styles.userInfo}>
             <Avatar.Text
               size={40}
-              label={user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              label={user?.name?.charAt(0)?.toUpperCase() || "U"}
               style={styles.avatar}
             />
             <View style={styles.userText}>
-              <Text style={styles.userName}>{user?.name || 'User'}</Text>
+              <Text style={styles.userName}>{user?.name || "User"}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -454,14 +544,14 @@ export default function HomeScreen() {
           icon="calendar"
           iconColor="white"
           size={24}
-          onPress={() => navigation.navigate('Calendar' as never)}
+          onPress={() => navigation.navigate("Calendar" as never)}
           style={styles.logoutButton}
         />
       </View>
 
       <KeyboardAvoidingView
         style={styles.chatContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           ref={scrollViewRef}
@@ -487,8 +577,11 @@ export default function HomeScreen() {
             placeholderTextColor="rgba(255, 255, 255, 0.6)"
             onSubmitEditing={handleSendMessage}
             returnKeyType="send"
-            style={[styles.textInput, hasUncompletedComponent && styles.disabledInput]}
-            contextMenuHidden={true}
+            style={[
+              styles.textInput,
+              hasUncompletedComponent && styles.disabledInput,
+            ]}
+            contextMenuHidden={false}
             selectTextOnFocus={false}
             autoCorrect={false}
             autoCapitalize="none"
@@ -503,7 +596,10 @@ export default function HomeScreen() {
                 iconColor="white"
                 size={20}
                 onPress={handleSendMessage}
-                style={[styles.sendButton, hasUncompletedComponent && styles.disabledButton]}
+                style={[
+                  styles.sendButton,
+                  hasUncompletedComponent && styles.disabledButton,
+                ]}
                 disabled={hasUncompletedComponent}
               />
             ) : (
@@ -516,7 +612,6 @@ export default function HomeScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-
     </LinearGradient>
   );
 }
@@ -526,20 +621,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 80,
     paddingBottom: 20,
   },
   userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   avatar: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     marginRight: 12,
   },
   userText: {
@@ -547,18 +642,18 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: "bold",
+    color: "white",
   },
   logoutButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     marginLeft: 10,
   },
   chatContainer: {
     flex: 1,
-    borderTopWidth:3,
-    borderTopColor:'rgba(255, 255, 255, 0.1)',
-    paddingTop: 12
+    borderTopWidth: 3,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+    paddingTop: 12,
   },
   messagesContainer: {
     flex: 1,
@@ -568,19 +663,19 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop:20,
+    paddingTop: 20,
     paddingBottom: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    gap: 8
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+    gap: 8,
   },
   textInput: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
     borderTopLeftRadius: 18,
@@ -588,52 +683,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 14,
-    color: 'white',
+    color: "white",
     borderWidth: 0,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   disabledInput: {
     opacity: 0.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
   inputButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   sendButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 20,
     width: 40,
     height: 40,
     margin: 0,
-    padding:0
+    padding: 0,
   },
   disabledButton: {
     opacity: 0.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
   messageContainer: {
     marginVertical: 8,
     paddingHorizontal: 8,
   },
   userMessage: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   aiMessage: {
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   messageBubble: {
-    maxWidth: '90%',
+    maxWidth: "90%",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 20,
   },
   userBubble: {
-    backgroundColor: '#667eea',
+    backgroundColor: "#667eea",
     borderBottomRightRadius: 4,
   },
   aiBubble: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderBottomLeftRadius: 4,
   },
   messageText: {
@@ -641,25 +736,25 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   userMessageText: {
-    color: 'white',
+    color: "white",
   },
   aiMessageText: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: "rgba(255, 255, 255, 0.9)",
   },
   eventCard: {
     marginTop: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 12,
   },
   eventTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
-    color: 'white',
+    color: "white",
   },
   eventDetail: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: "rgba(255, 255, 255, 0.8)",
     marginBottom: 4,
   },
-}); 
+});

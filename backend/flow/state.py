@@ -50,3 +50,7 @@ class FlowState(TypedDict):
     leisure_search_results: Optional[list]
     leisure_recommended_events: Optional[list]
     is_success: Annotated[bool, merge_is_success]
+    # Conflict Resolution
+    conflict_check_request: Optional[dict]
+    conflict_check_result: Optional[dict]
+    conflict_resolution_messages: Annotated[list[BaseMessage], add_messages]

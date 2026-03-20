@@ -6,7 +6,8 @@ export const formatDuration = (duration?: number) => {
   if (hours > 0 && minutes > 0) {
     return `${hours} hours ${minutes} minutes`;
   } else if (hours > 0) {
-    return `${hours} hours`;
+    if (hours === 1) return "1 hour";
+    else return `${hours} hours`;
   } else {
     return `${minutes} minutes`;
   }

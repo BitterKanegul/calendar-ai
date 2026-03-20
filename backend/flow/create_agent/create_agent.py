@@ -42,14 +42,29 @@ async def create_agent(state: FlowState):
         create_event_data = json.loads(response[0].content)
 
         state['create_event_data'] = create_event_data
+
+        # Set conflict_check_request for Conflict Resolution Agent (first event)
+        if isinstance(create_event_data, list) and len(create_event_data) > 0:
+            first_event = create_event_data[0].get("arguments", {})
+            start_date = first_event.get("startDate")
+            duration = first_event.get("duration", 60)
+            if start_date:
+                start_dt = datetime.fromisoformat(start_date) if isinstance(start_date, str) else start_date
+                end_dt = start_dt + timedelta(minutes=duration)
+                state['conflict_check_request'] = {
+                    "startDate": start_date if isinstance(start_date, str) else start_dt.isoformat(),
+                    "endDate": end_dt.isoformat(),
+                    "duration_minutes": duration,
+                    "exclude_event_id": None
+                }
     except Exception as e:
         state['create_event_data'] = None
-    
+
     return state
 
 def create_action(state: FlowState):
     if isinstance(state['create_event_data'], list):
-        return "check_event_conflict"
+        return "conflict_resolution_agent"
     else:
         return "create_message_handler"
         
